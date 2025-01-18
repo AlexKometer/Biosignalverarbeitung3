@@ -290,7 +290,6 @@ def plot_fatigue_fft(fatigue_1, fatigue_2, fatigue_3):
 
         axs[i, 1].plot(middle_freq, middle_power, label="Original Signal")
         axs[i, 1].plot(middle_freq, middle_filtered_power, label="Filtered Signal", linestyle='--')
-        axs[i, 1].axvline(x=middle_median, color='r', linestyle=':', label=f'Median (Original)')
         axs[i, 1].set_title(f'{titles[i]} - {timepoints[1]}')
         axs[i, 1].set_xlabel('Frequency (Hz)')
         axs[i, 1].set_ylabel('Power')
@@ -299,7 +298,6 @@ def plot_fatigue_fft(fatigue_1, fatigue_2, fatigue_3):
         axs[i, 2].plot(end_freq, end_power, label="Original Signal")
         axs[i, 2].plot(end_freq, end_filtered_power, label="Filtered Signal", linestyle='--')
         axs[i, 2].axvline(x=end_median, color='r', linestyle=':', label=f'Median (Original)')
-        axs[i, 2].axvline(x=end_filtered_median, color='g', linestyle=':', label=f'Median (Filtered)')
         axs[i, 2].set_title(f'{titles[i]} - {timepoints[2]}')
         axs[i, 2].set_xlabel('Frequency (Hz)')
         axs[i, 2].set_ylabel('Power')
