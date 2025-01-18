@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy.signal import butter, filtfilt
-
+import matplotlib.patches as mpatches
+from scipy import fftpack
 
 
 def remove_mean(signal):
@@ -144,3 +145,160 @@ def analyze_three_bursts(signal,
     print(f"Overall mean: {overall_mean:.3f}")
 
     return mean_1, mean_2, mean_3, overall_mean
+
+def process_and_plot_emg_weight(csv_path, title, window_size = 20, maximum_mvc = 20):
+
+    """
+    1. Load data (assuming single column with no header).
+    2. Remove offset.
+    3. Rectify.
+    4. RMS envelope.
+    5. Plot subplots in one figure.
+    """
+    fs = 1000
+    # 1) Load data
+    df = pd.read_csv(csv_path, header=None, names=["raw"])
+    # Remove any "A0:" prefix
+    df["raw"] = df["raw"].astype(str).str.replace("A0:", "", regex=False)
+    signal_raw = df["raw"].astype(float).values
+
+    # 2) Remove offset
+    signal_no_offset = remove_mean(signal_raw)
+
+    # 3) Filter signal
+    signal_filtered = butter_bandpass_filter(signal_no_offset, 20, 450, 1000)
+
+    # 4) Rectify
+    signal_rectified = np.abs(signal_filtered)
+
+    # 5) RMS envelope
+    rms_env = moving_rms(signal_rectified, window_size=window_size)
+
+    # Normalize signals to percentage of maximum MVC
+    signal_no_offset_percentage = (signal_no_offset / maximum_mvc) * 100
+    signal_rectified_percentage = (signal_rectified / maximum_mvc) * 100
+    rms_env_percentage = (rms_env / maximum_mvc) * 100
+
+    # 6) Plot RMS Envelope with shaded areas
+    plt.figure(figsize=(10, 6))
+
+    plt.plot(rms_env_percentage, label="RMS Envelope", color="red")
+    plt.title(f"{title} - RMS Envelope")
+    plt.xlabel("Sample index")
+    plt.ylabel("Amplitude (%)")
+    plt.ylim(0, 100)
+
+    # Add shaded areas with legends
+    green_patch = mpatches.Patch(color='green', alpha=0.5, label='2,5 KG')
+    orange_patch = mpatches.Patch(color='orange', alpha=0.5, label='5 KG')
+    blue_patch = mpatches.Patch(color='blue', alpha=0.5, label='10 KG')
+
+    plt.axvspan(125, 230, color='green', alpha=0.5)  # First highlighted region
+    plt.axvspan(360, 470, color='orange', alpha=0.5)  # Second highlighted region
+    plt.axvspan(630, 740, color='blue', alpha=0.5)    # Third highlighted region
+
+    # Adding the legend for the shaded areas
+    plt.legend(handles=[green_patch, orange_patch, blue_patch, plt.Line2D([0], [0], color="red", lw=2, label="RMS Envelope")])
+
+    plt.tight_layout()
+    plt.ylim(0, maximum_mvc)
+    plt.show()
+
+
+"""
+Code aus Lab3Functions.py
+"""
+
+
+# Funktion zur Berechnung der Leistung und Frequenzen
+def get_power(data):
+    sig_fft = fftpack.fft(data)
+
+    # Leistung (sig_fft ist vom Typ complex)
+    power = np.abs(sig_fft)
+
+    # Die entsprechenden Frequenzen
+    sample_freq1 = fftpack.fftfreq(data.size, d=1 / 1000)  # Annahme: Sampling-Rate = 1000 Hz
+    frequencies = sample_freq1[sample_freq1 > 0]
+    power = power[sample_freq1 > 0]
+    return power, frequencies
+
+
+# Butterworth-Filter mit einer Cutoff-Frequenz von 40 Hz
+def butter_bandpass_filter(data, lowcut=0.1, highcut=40.0, fs=1000, order=4):
+    nyquist = 0.5 * fs
+    low = lowcut / nyquist
+    high = highcut / nyquist
+    b, a = butter(order, [low, high], btype='band')
+    return filtfilt(b, a, data)
+
+
+# Funktion zur Erstellung von Plots für die 3 Datensätze und deren FFTs
+def plot_fatigue_fft(fatigue_1, fatigue_2, fatigue_3):
+    # Berechne die Länge jedes Datensatzes
+    len_fatigue_1 = len(fatigue_1)
+    len_fatigue_2 = len(fatigue_2)
+    len_fatigue_3 = len(fatigue_3)
+
+    # Teile die Daten in Start, Mitte und Ende
+    data_sets = [fatigue_1, fatigue_2, fatigue_3]
+    titles = ['Fatigue 1', 'Fatigue 2', 'Fatigue 3']
+    timepoints = ['Start', 'Middle', 'End']
+
+    # Erstelle die 9 Plots (3 Datensätze, 3 Zeitpunkte je Datensatz)
+    fig, axs = plt.subplots(3, 3, figsize=(15, 12))
+
+    for i, data in enumerate(data_sets):
+        # Start, Mitte, Ende
+        start = data[:len(data) // 3]
+        middle = data[len(data) // 3:2 * len(data) // 3]
+        end = data[2 * len(data) // 3:]
+
+        # Berechne FFT und Leistung für die 3 Zeitpunkte
+        start_power, start_freq = get_power(start)
+        middle_power, middle_freq = get_power(middle)
+        end_power, end_freq = get_power(end)
+
+        # Filtere das Signal
+        start_filtered = butter_bandpass_filter(start, lowcut=0.1, highcut=40.0)
+        middle_filtered = butter_bandpass_filter(middle, lowcut=0.1, highcut=40.0)
+        end_filtered = butter_bandpass_filter(end, lowcut=0.1, highcut=40.0)
+
+        # Berechne die Leistung des gefilterten Signals
+        start_filtered_power, _ = get_power(start_filtered)
+        middle_filtered_power, _ = get_power(middle_filtered)
+        end_filtered_power, _ = get_power(end_filtered)
+
+        # Plot für jeden Zeitpunkt
+        axs[i, 0].plot(start_freq, start_power, label="Original Signal")
+        axs[i, 0].plot(start_freq, start_filtered_power, label="Filtered Signal", linestyle='--')
+        axs[i, 0].set_title(f'{titles[i]} - {timepoints[0]}')
+        axs[i, 0].set_xlabel('Frequency (Hz)')
+        axs[i, 0].set_ylabel('Power')
+        axs[i, 0].legend()
+
+        axs[i, 1].plot(middle_freq, middle_power, label="Original Signal")
+        axs[i, 1].plot(middle_freq, middle_filtered_power, label="Filtered Signal", linestyle='--')
+        axs[i, 1].set_title(f'{titles[i]} - {timepoints[1]}')
+        axs[i, 1].set_xlabel('Frequency (Hz)')
+        axs[i, 1].set_ylabel('Power')
+        axs[i, 1].legend()
+
+        axs[i, 2].plot(end_freq, end_power, label="Original Signal")
+        axs[i, 2].plot(end_freq, end_filtered_power, label="Filtered Signal", linestyle='--')
+        axs[i, 2].set_title(f'{titles[i]} - {timepoints[2]}')
+        axs[i, 2].set_xlabel('Frequency (Hz)')
+        axs[i, 2].set_ylabel('Power')
+        axs[i, 2].legend()
+
+    # Layout anpassen und anzeigen
+    plt.tight_layout()
+    plt.show()
+
+
+# Beispiel für das Laden der Daten und Entfernen des "A0:"-Präfixes
+def load_and_process_data(file_path):
+    df = pd.read_csv(file_path, header=None, names=["raw"])
+    # Entferne das "A0:"-Präfix und konvertiere die Daten in Fließkommazahlen
+    df["raw"] = df["raw"].astype(str).str.replace("A0:", "", regex=False)
+    return df["raw"].astype(float).values
