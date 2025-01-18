@@ -316,6 +316,54 @@ def plot_fatigue_fft(fatigue_1, fatigue_2, fatigue_3):
     plt.show()
 
 
+def plot_median_frequency_changes(fatigue_1, fatigue_2, fatigue_3):
+    """
+    Erstellt einen Plot mit der Entwicklung der MEDIAN-WERTE DER POWER (Originaldaten)
+    für Start, Middle und End jedes der drei Ermüdungstests.
+    Dabei werden für jeden Test drei Datenpunkte (Start, Middle, End) durch eine Linie verbunden.
+    """
+
+    data_sets = [fatigue_1, fatigue_2, fatigue_3]
+    titles = ["Fatigue 1", "Fatigue 2", "Fatigue 3"]
+
+    # Liste für alle Medianwerte (jeweils 3 pro Test)
+    all_medians = []
+
+    for data in data_sets:
+        # Datensatz in Start, Middle, End aufteilen
+        start = data[:len(data) // 3]
+        middle = data[len(data) // 3:2 * len(data) // 3]
+        end = data[2 * len(data) // 3:]
+
+        # Power-Spektrum für jedes Segment berechnen
+        start_power, start_freq = get_power(start)  # get_power muss existieren
+        middle_power, middle_freq = get_power(middle)
+        end_power, end_freq = get_power(end)
+
+        # Median des Power-Spektrums berechnen
+        start_median = np.median(start_power)
+        middle_median = np.median(middle_power)
+        end_median = np.median(end_power)
+
+        all_medians.append([start_median, middle_median, end_median])
+
+    # Plot erstellen
+    plt.figure(figsize=(6, 4))
+    x_vals = [1, 2, 3]  # X-Achse für Start, Middle, End
+
+    for i, medians in enumerate(all_medians):
+        plt.plot(x_vals, medians, marker='o', label=titles[i])
+
+    plt.xticks(x_vals, ["Start", "Middle", "End"])
+    plt.xlabel("Test-Abschnitt")
+    plt.ylabel("Median des Power-Spektrums")
+    plt.title("Veränderung des Power-Medians über Start, Middle, End")
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+
+
 # Beispiel für das Laden der Daten und Entfernen des "A0:"-Präfixes
 def load_and_process_data(file_path):
     df = pd.read_csv(file_path, header=None, names=["raw"])
