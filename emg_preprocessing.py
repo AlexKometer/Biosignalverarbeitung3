@@ -205,10 +205,6 @@ def process_and_plot_emg_weight(csv_path, title, window_size = 20, maximum_mvc =
     plt.show()
 
 
-"""
-Code aus Lab3Functions.py
-"""
-
 
 # Funktion zur Berechnung der Leistung und Frequenzen
 def get_power(data):
