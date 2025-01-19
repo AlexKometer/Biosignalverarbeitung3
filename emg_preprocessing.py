@@ -334,9 +334,9 @@ def plot_median_frequency_changes(fatigue_1, fatigue_2, fatigue_3):
         end_power, end_freq = get_power(end)
 
         # Median des Power-Spektrums berechnen
-        start_median = np.median(start_freq)
-        middle_median = np.median(middle_freq)
-        end_median = np.median(end_freq)
+        start_median = np.median(start_power)
+        middle_median = np.median(middle_power)
+        end_median = np.median(end_power)
 
         all_medians.append([start_median, middle_median, end_median])
 
@@ -349,7 +349,7 @@ def plot_median_frequency_changes(fatigue_1, fatigue_2, fatigue_3):
 
     plt.xticks(x_vals, ["Start", "Middle", "End"])
     plt.xlabel("Test-Abschnitt")
-    plt.ylabel("Median des Frequenz-Spektrums")
+    plt.ylabel("Median des Power-Spektrums")
     plt.title("Veränderung des Power-Medians über Start, Middle, End")
     plt.legend()
     plt.tight_layout()
